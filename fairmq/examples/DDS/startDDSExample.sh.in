@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if(@NANOMSG_FOUND@); then
+    buffSize="500000000" # nanomsg buffer size is in bytes
+else
+    buffSize="10000" # zeromq high-water mark is in messages
+fi
+
+SAMPLER="bsampler"
+SAMPLER+=" --id 101"
+SAMPLER+=" --event-size 10000"
+SAMPLER+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5565"
+xterm -e @CMAKE_BINARY_DIR@/bin/$SAMPLER &
+
+SAMPLER="bsampler"
+SAMPLER+=" --id 102"
+SAMPLER+=" --event-size 10000"
+SAMPLER+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5566"
+xterm -e @CMAKE_BINARY_DIR@/bin/$SAMPLER &
+
+
+
+MERGER="merger"
+MERGER+=" --id 501"
+MERGER+=" --num-inputs 2"
+MERGER+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5565"
+MERGER+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5566"
+MERGER+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5581"
+xterm -e @CMAKE_BINARY_DIR@/bin/$MERGER &
+
+
+SINK="sink"
+SINK+=" --id 201"
+SINK+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5581"
+xterm -e @CMAKE_BINARY_DIR@/bin/$SINK &

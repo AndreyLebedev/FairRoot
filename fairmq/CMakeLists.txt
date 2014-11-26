@@ -11,6 +11,10 @@ set(INCLUDE_DIRECTORIES
   ${Boost_INCLUDE_DIR}
 )
 
+If (Boost_FOUND)
+  configure_file( ${CMAKE_SOURCE_DIR}/fairmq/examples/DDS/startDDSExample.sh.in ${CMAKE_BINARY_DIR}/bin/startDDSExample.sh )
+EndIf (Boost_FOUND)
+
 if(PROTOBUF_FOUND)
   set(INCLUDE_DIRECTORIES
     ${INCLUDE_DIRECTORIES}
