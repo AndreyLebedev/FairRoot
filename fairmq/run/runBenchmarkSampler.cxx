@@ -26,6 +26,11 @@
 #include "FairMQTransportFactoryZMQ.h"
 #endif
 
+// DDS
+#include "KeyValue.h"
+#include <boost/asio.hpp>
+//#include "SysHelper.h"
+
 using namespace std;
 
 FairMQBenchmarkSampler sampler;
@@ -134,7 +139,35 @@ int main(int argc, char** argv)
         LOG(ERROR) << e.what();
         return 1;
     }
-
+	
+	// DDS
+	//std::string username;
+	//std::string host;
+    //MiscCommon::get_cuser_name(&username);
+    //MiscCommon::get_hostname(&host);
+	
+	std::string hostname(boost::asio::ip::host_name());
+	boost::asio::io_service io_service;
+	boost::asio::ip::tcp::resolver resolver(io_service);
+	boost::asio::ip::tcp::resolver::query query(hostname, "");
+	boost::asio::ip::tcp::resolver::iterator it_begin = resolver.resolve(query);
+	boost::asio::ip::tcp::resolver::iterator it_end;
+	//for(auto it = it_begin; it != it_end;++it)
+	//{
+	// boost::asio::ip::tcp::endpoint ep = *it;
+	//    std::cout << it->address() << ' ';
+	//}
+	
+	// TODO we take the first resolved address
+	boost::asio::ip::tcp::endpoint ep = *it_begin;
+	
+	std::stringstream ss;
+	ss << "tcp://" << ep.address() << ":" << options.outputAddress;
+	
+	dds::CKeyValue ddsKeyValue;
+	ddsKeyValue.putValue("SamplerOutputAddress", ss.str());
+	//
+	
     LOG(INFO) << "PID: " << getpid();
     LOG(INFO) << "CONFIG: " << "id: " << options.id << ", event size: " << options.eventSize << ", event rate: " << options.eventRate << ", I/O threads: " << options.ioThreads;
     LOG(INFO) << "OUTPUT: " << options.outputSocketType << " " << options.outputBufSize << " " << options.outputMethod << " " << options.outputAddress;
@@ -160,7 +193,8 @@ int main(int argc, char** argv)
     sampler.SetProperty(FairMQBenchmarkSampler::OutputSocketType, options.outputSocketType);
     sampler.SetProperty(FairMQBenchmarkSampler::OutputSndBufSize, options.outputBufSize);
     sampler.SetProperty(FairMQBenchmarkSampler::OutputMethod, options.outputMethod);
-    sampler.SetProperty(FairMQBenchmarkSampler::OutputAddress, options.outputAddress);
+    //sampler.SetProperty(FairMQBenchmarkSampler::OutputAddress, options.outputAddress);
+	sampler.SetProperty(FairMQBenchmarkSampler::OutputAddress, ss.str());
 
     sampler.ChangeState(FairMQBenchmarkSampler::SETOUTPUT);
     sampler.ChangeState(FairMQBenchmarkSampler::SETINPUT);

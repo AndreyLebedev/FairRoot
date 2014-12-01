@@ -26,6 +26,11 @@
 #include "FairMQTransportFactoryZMQ.h"
 #endif
 
+// DDS
+#include "KeyValue.h"
+#include <boost/asio.hpp>
+#include "SysHelper.h"
+
 using namespace std;
 
 FairMQMerger merger;
@@ -149,6 +154,48 @@ int main(int argc, char** argv)
         LOG(ERROR) << e.what();
         return 1;
     }
+	
+	// DDS
+	//std::string username;
+	//std::string host;
+    //MiscCommon::get_cuser_name(&username);
+    //MiscCommon::get_hostname(&host);
+	
+	//std::stringstream ss;
+	//ss << "tcp://" << host << ":5581";
+	
+	
+	
+	std::string hostname(boost::asio::ip::host_name());
+	boost::asio::io_service io_service;
+	boost::asio::ip::tcp::resolver resolver(io_service);
+	boost::asio::ip::tcp::resolver::query query(hostname, "");
+	boost::asio::ip::tcp::resolver::iterator it_begin = resolver.resolve(query);
+	boost::asio::ip::tcp::resolver::iterator it_end;
+	//for(auto it = it_begin; it != it_end;++it)
+	//{
+	// boost::asio::ip::tcp::endpoint ep = *it;
+	//    std::cout << it->address() << ' ';
+	//}
+	
+	// TODO we take the first resolved address
+	boost::asio::ip::tcp::endpoint ep = *it_begin;
+	
+	std::stringstream ss;
+	ss << "tcp://" << ep.address() << ":" << options.outputAddress;
+	
+    dds::CKeyValue ddsKeyValue;
+    ddsKeyValue.putValue("MergerOutputAddress", ss.str());
+
+    dds::CKeyValue::valuesMap_t values;
+    ddsKeyValue.getValues("SamplerOutputAddress", &values);
+    while (values.size() != options.numInputs)
+    {
+        ddsKeyValue.waitForUpdate(chrono::seconds(120));
+
+        ddsKeyValue.getValues("SamplerOutputAddress", &values);
+    }
+	//
 
     LOG(INFO) << "PID: " << getpid();
 
@@ -168,18 +215,22 @@ int main(int argc, char** argv)
 
     merger.ChangeState(FairMQMerger::INIT);
 
+    dds::CKeyValue::valuesMap_t::const_iterator it_values = values.begin();
     for (int i = 0; i < options.numInputs; ++i)
     {
         merger.SetProperty(FairMQMerger::InputSocketType, options.inputSocketType.at(i), i);
         merger.SetProperty(FairMQMerger::InputRcvBufSize, options.inputBufSize.at(i), i);
         merger.SetProperty(FairMQMerger::InputMethod, options.inputMethod.at(i), i);
-        merger.SetProperty(FairMQMerger::InputAddress, options.inputAddress.at(i), i);
+        //merger.SetProperty(FairMQMerger::InputAddress, options.inputAddress.at(i), i);
+		merger.SetProperty(FairMQMerger::InputAddress, it_values->second, i);
+		++it_values;
     }
 
     merger.SetProperty(FairMQMerger::OutputSocketType, options.outputSocketType);
     merger.SetProperty(FairMQMerger::OutputSndBufSize, options.outputBufSize);
     merger.SetProperty(FairMQMerger::OutputMethod, options.outputMethod);
-    merger.SetProperty(FairMQMerger::OutputAddress, options.outputAddress);
+    //merger.SetProperty(FairMQMerger::OutputAddress, options.outputAddress);
+	merger.SetProperty(FairMQMerger::OutputAddress, ss.str());
 
     merger.ChangeState(FairMQMerger::SETOUTPUT);
     merger.ChangeState(FairMQMerger::SETINPUT);

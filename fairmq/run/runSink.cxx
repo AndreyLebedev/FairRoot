@@ -26,6 +26,9 @@
 #include "FairMQTransportFactoryZMQ.h"
 #endif
 
+// DDS
+#include "KeyValue.h"
+
 using namespace std;
 
 FairMQSink sink;
@@ -124,6 +127,18 @@ int main(int argc, char** argv)
         LOG(ERROR) << e.what();
         return 1;
     }
+	
+	// DDS
+    dds::CKeyValue ddsKeyValue;
+    dds::CKeyValue::valuesMap_t values;
+    ddsKeyValue.getValues("MergerOutputAddress", &values);
+    while (values.empty())
+    {
+        ddsKeyValue.waitForUpdate(chrono::seconds(120));
+
+        ddsKeyValue.getValues("MergerOutputAddress", &values);
+    }
+	//
 
     LOG(INFO) << "PID: " << getpid();
 
@@ -146,7 +161,8 @@ int main(int argc, char** argv)
     sink.SetProperty(FairMQSink::InputSocketType, options.inputSocketType);
     sink.SetProperty(FairMQSink::InputRcvBufSize, options.inputBufSize);
     sink.SetProperty(FairMQSink::InputMethod, options.inputMethod);
-    sink.SetProperty(FairMQSink::InputAddress, options.inputAddress);
+    //sink.SetProperty(FairMQSink::InputAddress, options.inputAddress);
+	sink.SetProperty(FairMQSink::InputAddress, values.begin()->second);
 
     sink.ChangeState(FairMQSink::SETOUTPUT);
     sink.ChangeState(FairMQSink::SETINPUT);

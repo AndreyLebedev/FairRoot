@@ -39,10 +39,22 @@ else(NANOMSG_FOUND)
   )
 endif(NANOMSG_FOUND)
 
+# DDS
+set(INCLUDE_DIRECTORIES
+  ${INCLUDE_DIRECTORIES}
+  $ENV{DDS_LOCATION}/include
+)
+
 include_directories(${INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
+)
+
+# DDS
+set(LINK_DIRECTORIES
+  ${LINK_DIRECTORIES}
+  $ENV{DDS_LOCATION}/lib
 )
 
 link_directories(${LINK_DIRECTORIES})
@@ -173,3 +185,19 @@ ForEach(_file RANGE 0 ${_length})
   set(DEPENDENCIES FairMQ)
   GENERATE_EXECUTABLE()
 EndForEach(_file RANGE 0 ${_length})
+
+# DDS
+target_link_libraries (
+	bsampler
+	dds-key-value-lib
+)
+
+target_link_libraries (
+	merger
+	dds-key-value-lib
+)
+
+target_link_libraries (
+	sink
+	dds-key-value-lib
+)
