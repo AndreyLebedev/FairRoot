@@ -141,11 +141,8 @@ int main(int argc, char** argv)
     }
 	
 	// DDS
-	//std::string username;
-	//std::string host;
-    //MiscCommon::get_cuser_name(&username);
-    //MiscCommon::get_hostname(&host);
-	
+	// Construct the initial connection string.
+	// Port will be changed after binding.
 	std::string hostname(boost::asio::ip::host_name());
 	boost::asio::io_service io_service;
 	boost::asio::ip::tcp::resolver resolver(io_service);
@@ -162,10 +159,8 @@ int main(int argc, char** argv)
 	boost::asio::ip::tcp::endpoint ep = *it_begin;
 	
 	std::stringstream ss;
-	ss << "tcp://" << ep.address() << ":" << options.outputAddress;
-	
-	dds::CKeyValue ddsKeyValue;
-	ddsKeyValue.putValue("SamplerOutputAddress", ss.str());
+	ss << "tcp://" << ep.address() << ":5655";
+	std::string initialOutputAddress = ss.str();
 	//
 	
     LOG(INFO) << "PID: " << getpid();
@@ -194,10 +189,20 @@ int main(int argc, char** argv)
     sampler.SetProperty(FairMQBenchmarkSampler::OutputSndBufSize, options.outputBufSize);
     sampler.SetProperty(FairMQBenchmarkSampler::OutputMethod, options.outputMethod);
     //sampler.SetProperty(FairMQBenchmarkSampler::OutputAddress, options.outputAddress);
-	sampler.SetProperty(FairMQBenchmarkSampler::OutputAddress, ss.str());
+	sampler.SetProperty(FairMQBenchmarkSampler::OutputAddress, initialOutputAddress);
 
     sampler.ChangeState(FairMQBenchmarkSampler::SETOUTPUT);
     sampler.ChangeState(FairMQBenchmarkSampler::SETINPUT);
+    sampler.ChangeState(FairMQBenchmarkSampler::BIND);
+    //LOG(INFO) << "Bound address: " << sampler.GetProperty(TSink::InputAddress, "", 0);
+	
+	// DDS 
+	// Set property
+	dds::CKeyValue ddsKeyValue;
+	ddsKeyValue.putValue("SamplerOutputAddress", sampler.GetProperty(FairMQBenchmarkSampler::OutputAddress, "", 0));
+	//
+	
+    sampler.ChangeState(FairMQBenchmarkSampler::CONNECT);
     sampler.ChangeState(FairMQBenchmarkSampler::RUN);
 
     // wait until the running thread has finished processing.

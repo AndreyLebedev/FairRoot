@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <csignal>
+#include <fstream>
 
 #include "boost/program_options.hpp"
 
@@ -29,7 +30,6 @@
 // DDS
 #include "KeyValue.h"
 #include <boost/asio.hpp>
-#include "SysHelper.h"
 
 using namespace std;
 
@@ -140,7 +140,9 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 }
 
 int main(int argc, char** argv)
-{
+{	
+	try {
+		
     s_catch_signals();
 
     DeviceOptions_t options;
@@ -156,16 +158,8 @@ int main(int argc, char** argv)
     }
 	
 	// DDS
-	//std::string username;
-	//std::string host;
-    //MiscCommon::get_cuser_name(&username);
-    //MiscCommon::get_hostname(&host);
-	
-	//std::stringstream ss;
-	//ss << "tcp://" << host << ":5581";
-	
-	
-	
+	// Construct the initial connection string.
+	// Port will be changed after binding.
 	std::string hostname(boost::asio::ip::host_name());
 	boost::asio::io_service io_service;
 	boost::asio::ip::tcp::resolver resolver(io_service);
@@ -182,38 +176,110 @@ int main(int argc, char** argv)
 	boost::asio::ip::tcp::endpoint ep = *it_begin;
 	
 	std::stringstream ss;
-	ss << "tcp://" << ep.address() << ":" << options.outputAddress;
+	ss << "tcp://" << ep.address() << ":7655";
+	std::string initialOutputAddress(ss.str());
+	//
 	
-    dds::CKeyValue ddsKeyValue;
-    ddsKeyValue.putValue("MergerOutputAddress", ss.str());
-
+	// DDS
+	// Waiting for properties
+	//ofs << "Start Key Value\n";
+	//ofs.flush();
+	
+	dds::CKeyValue ddsKeyValue;
+	
+	ddsKeyValue.putValue("MergerOutputAddress", initialOutputAddress);
+	
+	//ofs << "Put Value completed\n";
+	//ofs.flush();
+	
     dds::CKeyValue::valuesMap_t values;
     ddsKeyValue.getValues("SamplerOutputAddress", &values);
     while (values.size() != options.numInputs)
     {
         ddsKeyValue.waitForUpdate(chrono::seconds(120));
-
         ddsKeyValue.getValues("SamplerOutputAddress", &values);
     }
 	//
+	
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "values.size()=" << values.size() << "\n";
+		
+		dds::CKeyValue::valuesMap_t::const_iterator it_values = values.begin();
+	    for (int i = 0; i < options.numInputs; ++i)
+	    {
+			ofs << "i=" << i << it_values->second << "\n";
+			it_values++;
+		}
+		ofs.close();
+	}
 
-    LOG(INFO) << "PID: " << getpid();
+    //LOG(INFO) << "PID: " << getpid();
+
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "Start init transport factory" << "\n";
+		ofs.close();
+	}
 
 #ifdef NANOMSG
     FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
 #else
     FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
 #endif
+	
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "End init transport factory" << "\n";
+		ofs.close();
+	}
 
     merger.SetTransport(transportFactory);
+	
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "D1" << "\n";
+		ofs.close();
+	}
 
     merger.SetProperty(FairMQMerger::Id, options.id);
+	
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "D2" << "\n";
+		ofs.close();
+	}
     merger.SetProperty(FairMQMerger::NumIoThreads, options.ioThreads);
+	
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "D3" << "\n";
+		ofs.close();
+	}
 
     merger.SetProperty(FairMQMerger::NumInputs, options.numInputs);
+	
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "D4" << "\n";
+		ofs.close();
+	}
+	
     merger.SetProperty(FairMQMerger::NumOutputs, 1);
 
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "Before init" << "\n";
+		ofs.close();
+	}
+
     merger.ChangeState(FairMQMerger::INIT);
+	
+	{
+		std::ofstream ofs("merger.log", std::ios::app);
+		ofs << "After init" << "\n";
+		ofs.close();
+	}
 
     dds::CKeyValue::valuesMap_t::const_iterator it_values = values.begin();
     for (int i = 0; i < options.numInputs; ++i)
@@ -222,7 +288,17 @@ int main(int argc, char** argv)
         merger.SetProperty(FairMQMerger::InputRcvBufSize, options.inputBufSize.at(i), i);
         merger.SetProperty(FairMQMerger::InputMethod, options.inputMethod.at(i), i);
         //merger.SetProperty(FairMQMerger::InputAddress, options.inputAddress.at(i), i);
+		{
+			std::ofstream ofs("merger.log", std::ios::app);
+			ofs << "i=" << i << "\n";
+			ofs.close();
+		}
 		merger.SetProperty(FairMQMerger::InputAddress, it_values->second, i);
+		{
+			std::ofstream ofs("merger.log", std::ios::app);
+			ofs << "i=" << i << it_values->second << "\n";
+			ofs.close();
+		}
 		++it_values;
     }
 
@@ -230,11 +306,17 @@ int main(int argc, char** argv)
     merger.SetProperty(FairMQMerger::OutputSndBufSize, options.outputBufSize);
     merger.SetProperty(FairMQMerger::OutputMethod, options.outputMethod);
     //merger.SetProperty(FairMQMerger::OutputAddress, options.outputAddress);
-	merger.SetProperty(FairMQMerger::OutputAddress, ss.str());
+	merger.SetProperty(FairMQMerger::OutputAddress, initialOutputAddress);
 
     merger.ChangeState(FairMQMerger::SETOUTPUT);
     merger.ChangeState(FairMQMerger::SETINPUT);
     merger.ChangeState(FairMQMerger::BIND);
+	
+	// DDS
+    //ddsKeyValue.putValue("MergerOutputAddress", merger.GetProperty(FairMQMerger::OutputAddress, "", 0));
+	//ddsKeyValue.putValue("MergerOutputAddress", initialOutputAddress);
+	//
+	
     merger.ChangeState(FairMQMerger::CONNECT);
     merger.ChangeState(FairMQMerger::RUN);
 
@@ -247,6 +329,12 @@ int main(int argc, char** argv)
 
     merger.ChangeState(FairMQMerger::STOP);
     merger.ChangeState(FairMQMerger::END);
+    } catch (std::exception& e){
+		//ofs << "Merger exception: " << e.what();
+		//ofs.close();
+		return 1;
+    }
+	//ofs.close();
 
     return 0;
 }
