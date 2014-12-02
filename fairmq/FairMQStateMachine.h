@@ -39,6 +39,8 @@ namespace FairMQFSM
     struct INIT {};
     struct SETOUTPUT {};
     struct SETINPUT {};
+    struct BIND {};
+    struct CONNECT {};
     struct PAUSE {};
     struct RUN {};
     struct STOP {};
@@ -63,6 +65,8 @@ namespace FairMQFSM
         struct INITIALIZING_FSM : public msm::front::state<> {};
         struct SETTINGOUTPUT_FSM : public msm::front::state<> {};
         struct SETTINGINPUT_FSM : public msm::front::state<> {};
+        struct BINDING_FSM : public msm::front::state<> {};
+        struct CONNECTING_FSM : public msm::front::state<> {};
         struct WAITING_FSM : public msm::front::state<> {};
         struct RUNNING_FSM : public msm::front::state<> {};
         // Define initial state
@@ -103,6 +107,24 @@ namespace FairMQFSM
                 fsm.InitInput();
             }
         };
+        struct BindFct
+        {
+            template <class EVT, class FSM, class SourceState, class TargetState>
+            void operator()(EVT const&, FSM& fsm, SourceState&, TargetState&)
+            {
+                fsm.fState = BINDING;
+                fsm.Bind();
+            }
+        };
+        struct ConnectFct
+        {
+            template <class EVT, class FSM, class SourceState, class TargetState>
+            void operator()(EVT const&, FSM& fsm, SourceState&, TargetState&)
+            {
+                fsm.fState = CONNECTING;
+                fsm.Connect();
+            }
+        };
         struct RunFct
         {
             template <class EVT, class FSM, class SourceState, class TargetState>
@@ -139,6 +161,8 @@ namespace FairMQFSM
         virtual void Shutdown() {}
         virtual void InitOutput() {}
         virtual void InitInput() {}
+        virtual void Bind() {}
+        virtual void Connect() {}
         virtual void Terminate() {} // Termination method called during StopFct action.
         // Transition table for FairMQFMS
         struct transition_table : mpl::vector<
@@ -148,8 +172,10 @@ namespace FairMQFSM
             msmf::Row<IDLE_FSM,          END,       msmf::none,        TestFct,      msmf::none>, // this is an invalid transition...
             msmf::Row<INITIALIZING_FSM,  SETOUTPUT, SETTINGOUTPUT_FSM, SetOutputFct, msmf::none>,
             msmf::Row<SETTINGOUTPUT_FSM, SETINPUT,  SETTINGINPUT_FSM,  SetInputFct,  msmf::none>,
-            msmf::Row<SETTINGINPUT_FSM,  PAUSE,     WAITING_FSM,       PauseFct,     msmf::none>,
-            msmf::Row<SETTINGINPUT_FSM,  RUN,       RUNNING_FSM,       RunFct,       msmf::none>,
+            msmf::Row<SETTINGINPUT_FSM,  BIND,      BINDING_FSM,       BindFct,      msmf::none>,
+            msmf::Row<BINDING_FSM,       CONNECT,   CONNECTING_FSM,    ConnectFct,   msmf::none>,
+            msmf::Row<CONNECTING_FSM,    PAUSE,     WAITING_FSM,       PauseFct,     msmf::none>,
+            msmf::Row<CONNECTING_FSM,    RUN,       RUNNING_FSM,       RunFct,       msmf::none>,
             msmf::Row<WAITING_FSM,       RUN,       RUNNING_FSM,       RunFct,       msmf::none>,
             msmf::Row<WAITING_FSM,       STOP,      IDLE_FSM,          StopFct,      msmf::none>,
             msmf::Row<RUNNING_FSM,       PAUSE,     WAITING_FSM,       PauseFct,     msmf::none>,
@@ -171,6 +197,8 @@ namespace FairMQFSM
             INITIALIZING,
             SETTINGOUTPUT,
             SETTINGINPUT,
+            BINDING,
+            CONNECTING,
             WAITING,
             RUNNING
         };
@@ -187,6 +215,8 @@ class FairMQStateMachine : public FairMQFSM::FairMQFSM
         INIT,
         SETOUTPUT,
         SETINPUT,
+        BIND,
+        CONNECT,
         PAUSE,
         RUN,
         STOP,

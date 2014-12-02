@@ -158,6 +158,9 @@ int main(int argc, char** argv)
 
     filesink.ChangeState(TSink::SETOUTPUT);
     filesink.ChangeState(TSink::SETINPUT);
+    filesink.ChangeState(TSink::BIND);
+    LOG(INFO) << "Bound address: " << filesink.GetProperty(TSink::InputAddress, "", 0);
+    filesink.ChangeState(TSink::CONNECT);
     filesink.ChangeState(TSink::RUN);
 
     // wait until the running thread has finished processing.

@@ -69,7 +69,7 @@ string FairMQSocketZMQ::GetId()
     return fId;
 }
 
-void FairMQSocketZMQ::Bind(const string& address)
+bool FairMQSocketZMQ::Bind(const string& address)
 {
     LOG(INFO) << "bind socket #" << fId << " on " << address;
 
@@ -77,7 +77,9 @@ void FairMQSocketZMQ::Bind(const string& address)
     if (rc != 0)
     {
         LOG(ERROR) << "failed binding socket #" << fId << ", reason: " << zmq_strerror(errno);
+        return false;
     }
+    return true;
 }
 
 void FairMQSocketZMQ::Connect(const string& address)

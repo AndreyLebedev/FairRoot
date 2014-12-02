@@ -41,6 +41,12 @@ void FairMQStateMachine::ChangeState(int event)
             case SETINPUT:
                 process_event(FairMQFSM::SETINPUT());
                 return;
+            case BIND:
+                process_event(FairMQFSM::BIND());
+                return;
+            case CONNECT:
+                process_event(FairMQFSM::CONNECT());
+                return;
             case RUN:
                 process_event(FairMQFSM::RUN());
                 return;

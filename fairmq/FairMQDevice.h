@@ -39,11 +39,15 @@ class FairMQDevice : public FairMQStateMachine, public FairMQConfigurable
         NumInputs,
         NumOutputs,
         InputAddress,
+        InputPortMin,
+        InputPortMax,
         InputMethod,
         InputSocketType,
         InputSndBufSize,
         InputRcvBufSize,
         OutputAddress,
+        OutputPortMin,
+        OutputPortMax,
         OutputMethod,
         OutputSocketType,
         OutputSndBufSize,
@@ -104,6 +108,8 @@ class FairMQDevice : public FairMQStateMachine, public FairMQConfigurable
     virtual void Shutdown();
     virtual void InitOutput();
     virtual void InitInput();
+    virtual void Bind();
+    virtual void Connect();
 
     virtual void Terminate();
 };
