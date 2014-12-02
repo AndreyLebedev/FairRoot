@@ -29,7 +29,6 @@
 // DDS
 #include "KeyValue.h"
 #include <boost/asio.hpp>
-//#include "SysHelper.h"
 
 using namespace std;
 
@@ -65,7 +64,7 @@ typedef struct DeviceOptions
     string outputSocketType;
     int outputBufSize;
     string outputMethod;
-    string outputAddress;
+//    string outputAddress;
 } DeviceOptions_t;
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
@@ -83,7 +82,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
         ("output-socket-type", bpo::value<string>()->required(), "Output socket type: pub/push")
         ("output-buff-size", bpo::value<int>()->required(), "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
         ("output-method", bpo::value<string>()->required(), "Output method: bind/connect")
-        ("output-address", bpo::value<string>()->required(), "Output address, e.g.: \"tcp://*:5555\"")
+       // ("output-address", bpo::value<string>()->required(), "Output address, e.g.: \"tcp://*:5555\"")
         ("help", "Print help messages");
 
     bpo::variables_map vm;
@@ -118,8 +117,8 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     if ( vm.count("output-method") )
         _options->outputMethod = vm["output-method"].as<string>();
 
-    if ( vm.count("output-address") )
-        _options->outputAddress = vm["output-address"].as<string>();
+    //if ( vm.count("output-address") )
+    //    _options->outputAddress = vm["output-address"].as<string>();
 
     return true;
 }
@@ -165,7 +164,7 @@ int main(int argc, char** argv)
 	
     LOG(INFO) << "PID: " << getpid();
     LOG(INFO) << "CONFIG: " << "id: " << options.id << ", event size: " << options.eventSize << ", event rate: " << options.eventRate << ", I/O threads: " << options.ioThreads;
-    LOG(INFO) << "OUTPUT: " << options.outputSocketType << " " << options.outputBufSize << " " << options.outputMethod << " " << options.outputAddress;
+    LOG(INFO) << "OUTPUT: " << options.outputSocketType << " " << options.outputBufSize << " " << options.outputMethod;// << " " << options.outputAddress;
 
 #ifdef NANOMSG
     FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
@@ -188,13 +187,11 @@ int main(int argc, char** argv)
     sampler.SetProperty(FairMQBenchmarkSampler::OutputSocketType, options.outputSocketType);
     sampler.SetProperty(FairMQBenchmarkSampler::OutputSndBufSize, options.outputBufSize);
     sampler.SetProperty(FairMQBenchmarkSampler::OutputMethod, options.outputMethod);
-    //sampler.SetProperty(FairMQBenchmarkSampler::OutputAddress, options.outputAddress);
 	sampler.SetProperty(FairMQBenchmarkSampler::OutputAddress, initialOutputAddress);
 
     sampler.ChangeState(FairMQBenchmarkSampler::SETOUTPUT);
     sampler.ChangeState(FairMQBenchmarkSampler::SETINPUT);
     sampler.ChangeState(FairMQBenchmarkSampler::BIND);
-    //LOG(INFO) << "Bound address: " << sampler.GetProperty(TSink::InputAddress, "", 0);
 	
 	// DDS 
 	// Set property

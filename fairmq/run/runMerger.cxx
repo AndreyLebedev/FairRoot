@@ -61,14 +61,14 @@ typedef struct DeviceOptions
     string id;
     int ioThreads;
     int numInputs;
-    vector<string> inputSocketType;
-    vector<int> inputBufSize;
-    vector<string> inputMethod;
-    vector<string> inputAddress;
+    string inputSocketType;
+    int inputBufSize;
+    string inputMethod;
+//    vector<string> inputAddress;
     string outputSocketType;
     int outputBufSize;
     string outputMethod;
-    string outputAddress;
+//    string outputAddress;
 } DeviceOptions_t;
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
@@ -82,14 +82,14 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
         ("id", bpo::value<string>()->required(), "Device ID")
         ("io-threads", bpo::value<int>()->default_value(1), "Number of I/O threads")
         ("num-inputs", bpo::value<int>()->required(), "Number of Merger input sockets")
-        ("input-socket-type", bpo::value< vector<string> >()->required(), "Input socket type: sub/pull")
-        ("input-buff-size", bpo::value< vector<int> >()->required(), "Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
-        ("input-method", bpo::value< vector<string> >()->required(), "Input method: bind/connect")
-        ("input-address", bpo::value< vector<string> >()->required(), "Input address, e.g.: \"tcp://localhost:5555\"")
+        ("input-socket-type", bpo::value<string>()->required(), "Input socket type: sub/pull")
+        ("input-buff-size", bpo::value<int>()->required(), "Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+        ("input-method", bpo::value<string>()->required(), "Input method: bind/connect")
+    //    ("input-address", bpo::value< vector<string> >()->required(), "Input address, e.g.: \"tcp://localhost:5555\"")
         ("output-socket-type", bpo::value<string>()->required(), "Output socket type: pub/push")
         ("output-buff-size", bpo::value<int>()->required(), "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
         ("output-method", bpo::value<string>()->required(), "Output method: bind/connect")
-        ("output-address", bpo::value<string>()->required(), "Output address, e.g.: \"tcp://localhost:5555\"")
+    //    ("output-address", bpo::value<string>()->required(), "Output address, e.g.: \"tcp://localhost:5555\"")
         ("help", "Print help messages");
 
     bpo::variables_map vm;
@@ -113,16 +113,16 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
         _options->numInputs = vm["num-inputs"].as<int>();
 
     if ( vm.count("input-socket-type") )
-        _options->inputSocketType = vm["input-socket-type"].as< vector<string> >();
+        _options->inputSocketType = vm["input-socket-type"].as<string>();
 
     if ( vm.count("input-buff-size") )
-        _options->inputBufSize = vm["input-buff-size"].as< vector<int> >();
+        _options->inputBufSize = vm["input-buff-size"].as<int>();
 
     if ( vm.count("input-method") )
-        _options->inputMethod = vm["input-method"].as< vector<string> >();
+        _options->inputMethod = vm["input-method"].as<string>();
 
-    if ( vm.count("input-address") )
-        _options->inputAddress = vm["input-address"].as< vector<string> >();
+  //  if ( vm.count("input-address") )
+  //      _options->inputAddress = vm["input-address"].as< vector<string> >();
 
     if ( vm.count("output-socket-type") )
         _options->outputSocketType = vm["output-socket-type"].as<string>();
@@ -133,8 +133,8 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     if ( vm.count("output-method") )
         _options->outputMethod = vm["output-method"].as<string>();
 
-    if ( vm.count("output-address") )
-        _options->outputAddress = vm["output-address"].as<string>();
+   // if ( vm.count("output-address") )
+   //     _options->outputAddress = vm["output-address"].as<string>();
 
     return true;
 }
@@ -182,16 +182,7 @@ int main(int argc, char** argv)
 	
 	// DDS
 	// Waiting for properties
-	//ofs << "Start Key Value\n";
-	//ofs.flush();
-	
 	dds::CKeyValue ddsKeyValue;
-	
-	ddsKeyValue.putValue("MergerOutputAddress", initialOutputAddress);
-	
-	//ofs << "Put Value completed\n";
-	//ofs.flush();
-	
     dds::CKeyValue::valuesMap_t values;
     ddsKeyValue.getValues("SamplerOutputAddress", &values);
     while (values.size() != options.numInputs)
@@ -200,112 +191,35 @@ int main(int argc, char** argv)
         ddsKeyValue.getValues("SamplerOutputAddress", &values);
     }
 	//
-	
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "values.size()=" << values.size() << "\n";
-		
-		dds::CKeyValue::valuesMap_t::const_iterator it_values = values.begin();
-	    for (int i = 0; i < options.numInputs; ++i)
-	    {
-			ofs << "i=" << i << it_values->second << "\n";
-			it_values++;
-		}
-		ofs.close();
-	}
-
-    //LOG(INFO) << "PID: " << getpid();
-
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "Start init transport factory" << "\n";
-		ofs.close();
-	}
 
 #ifdef NANOMSG
     FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
 #else
     FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
 #endif
-	
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "End init transport factory" << "\n";
-		ofs.close();
-	}
 
     merger.SetTransport(transportFactory);
-	
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "D1" << "\n";
-		ofs.close();
-	}
-
-    merger.SetProperty(FairMQMerger::Id, options.id);
-	
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "D2" << "\n";
-		ofs.close();
-	}
+    
+	merger.SetProperty(FairMQMerger::Id, options.id);
     merger.SetProperty(FairMQMerger::NumIoThreads, options.ioThreads);
-	
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "D3" << "\n";
-		ofs.close();
-	}
-
     merger.SetProperty(FairMQMerger::NumInputs, options.numInputs);
-	
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "D4" << "\n";
-		ofs.close();
-	}
-	
     merger.SetProperty(FairMQMerger::NumOutputs, 1);
 
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "Before init" << "\n";
-		ofs.close();
-	}
-
     merger.ChangeState(FairMQMerger::INIT);
-	
-	{
-		std::ofstream ofs("merger.log", std::ios::app);
-		ofs << "After init" << "\n";
-		ofs.close();
-	}
 
     dds::CKeyValue::valuesMap_t::const_iterator it_values = values.begin();
     for (int i = 0; i < options.numInputs; ++i)
     {
-        merger.SetProperty(FairMQMerger::InputSocketType, options.inputSocketType.at(i), i);
-        merger.SetProperty(FairMQMerger::InputRcvBufSize, options.inputBufSize.at(i), i);
-        merger.SetProperty(FairMQMerger::InputMethod, options.inputMethod.at(i), i);
-        //merger.SetProperty(FairMQMerger::InputAddress, options.inputAddress.at(i), i);
-		{
-			std::ofstream ofs("merger.log", std::ios::app);
-			ofs << "i=" << i << "\n";
-			ofs.close();
-		}
+        merger.SetProperty(FairMQMerger::InputSocketType, options.inputSocketType, i);
+        merger.SetProperty(FairMQMerger::InputRcvBufSize, options.inputBufSize, i);
+        merger.SetProperty(FairMQMerger::InputMethod, options.inputMethod, i);
 		merger.SetProperty(FairMQMerger::InputAddress, it_values->second, i);
-		{
-			std::ofstream ofs("merger.log", std::ios::app);
-			ofs << "i=" << i << it_values->second << "\n";
-			ofs.close();
-		}
 		++it_values;
     }
 
     merger.SetProperty(FairMQMerger::OutputSocketType, options.outputSocketType);
     merger.SetProperty(FairMQMerger::OutputSndBufSize, options.outputBufSize);
     merger.SetProperty(FairMQMerger::OutputMethod, options.outputMethod);
-    //merger.SetProperty(FairMQMerger::OutputAddress, options.outputAddress);
 	merger.SetProperty(FairMQMerger::OutputAddress, initialOutputAddress);
 
     merger.ChangeState(FairMQMerger::SETOUTPUT);
@@ -313,8 +227,7 @@ int main(int argc, char** argv)
     merger.ChangeState(FairMQMerger::BIND);
 	
 	// DDS
-    //ddsKeyValue.putValue("MergerOutputAddress", merger.GetProperty(FairMQMerger::OutputAddress, "", 0));
-	//ddsKeyValue.putValue("MergerOutputAddress", initialOutputAddress);
+    ddsKeyValue.putValue("MergerOutputAddress", merger.GetProperty(FairMQMerger::OutputAddress, "", 0));
 	//
 	
     merger.ChangeState(FairMQMerger::CONNECT);
@@ -329,12 +242,10 @@ int main(int argc, char** argv)
 
     merger.ChangeState(FairMQMerger::STOP);
     merger.ChangeState(FairMQMerger::END);
-    } catch (std::exception& e){
-		//ofs << "Merger exception: " << e.what();
-		//ofs.close();
+    } catch (std::exception& e) {
+		LOG(ERROR) << e.what();
 		return 1;
     }
-	//ofs.close();
 
     return 0;
 }

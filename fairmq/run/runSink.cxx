@@ -61,7 +61,7 @@ typedef struct DeviceOptions
     string inputSocketType;
     int inputBufSize;
     string inputMethod;
-    string inputAddress;
+ //   string inputAddress;
 } DeviceOptions_t;
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
@@ -77,7 +77,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
         ("input-socket-type", bpo::value<string>()->required(), "Input socket type: sub/pull")
         ("input-buff-size", bpo::value<int>()->required(), "Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
         ("input-method", bpo::value<string>()->required(), "Input method: bind/connect")
-        ("input-address", bpo::value<string>()->required(), "Input address, e.g.: \"tcp://*:5555\"")
+     //   ("input-address", bpo::value<string>()->required(), "Input address, e.g.: \"tcp://*:5555\"")
         ("help", "Print help messages");
 
     bpo::variables_map vm;
@@ -106,8 +106,8 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     if ( vm.count("input-method") )
         _options->inputMethod = vm["input-method"].as<string>();
 
-    if ( vm.count("input-address") )
-        _options->inputAddress = vm["input-address"].as<string>();
+ //   if ( vm.count("input-address") )
+ //       _options->inputAddress = vm["input-address"].as<string>();
 
     return true;
 }
@@ -160,7 +160,6 @@ int main(int argc, char** argv)
     sink.SetProperty(FairMQSink::InputSocketType, options.inputSocketType);
     sink.SetProperty(FairMQSink::InputRcvBufSize, options.inputBufSize);
     sink.SetProperty(FairMQSink::InputMethod, options.inputMethod);
-    //sink.SetProperty(FairMQSink::InputAddress, options.inputAddress);
 	sink.SetProperty(FairMQSink::InputAddress, values.begin()->second);
 
     sink.ChangeState(FairMQSink::SETOUTPUT);
