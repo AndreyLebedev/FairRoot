@@ -1,0 +1,51 @@
+<topology id="myTopology">
+	
+	<property id="SamplerOutputAddress" />
+	<property id="MergerOutputAddress" />
+	
+	<declrequirement id="bsamplerHost">
+    	<hostPattern value=".+.gsi.de"/>
+	</declrequirement>
+	
+	<declrequirement id="mergerHost">
+    	<hostPattern value="cbmmac001.gsi.de"/>
+	</declrequirement>
+	
+	<declrequirement id="sinkHost">
+    	<hostPattern value="cbmmac001.gsi.de"/>
+	</declrequirement>
+	
+  	<decltask id="bsampler1">
+		<exe reachable="false">/Users/andrey/Development/gsi/fairroot/build_dds/bin/bsampler --id 101 --event-size 10000 --output-socket-type push --output-buff-size 10000 --output-method bind</exe>
+		<requirement>bsamplerHost</requirement>
+		<properties>
+			<id>SamplerOutputAddress</id>
+		</properties>
+	</decltask>
+	
+  	<decltask id="merger1">
+		<exe reachable="false">/Users/andrey/Development/gsi/fairroot/build_dds/bin/merger --id 501 --num-inputs 20  --input-socket-type pull --input-buff-size 10000 --input-method connect --output-socket-type push --output-buff-size 10000 --output-method bind</exe>
+		<requirement>mergerHost</requirement>
+		<properties>
+			<id>SamplerOutputAddress</id>
+			<id>MergerOutputAddress</id>
+		</properties>
+	</decltask>
+	
+  	<decltask id="sink1">
+		<exe reachable="false">/Users/andrey/Development/gsi/fairroot/build_dds/bin/sink --id 201 --input-socket-type pull --input-buff-size 10000 --input-method connect</exe>
+		<requirement>sinkHost</requirement>
+		<properties>
+			<id>MergerOutputAddress</id>
+		</properties>
+	</decltask>
+	
+	<main id="main">
+	    <task>merger1</task>
+	    <task>sink1</task>
+		<group id="group1" n="20">
+			<task>bsampler1</task>
+		</group>
+	</main>
+	
+</topology>
