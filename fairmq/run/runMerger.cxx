@@ -181,16 +181,23 @@ int main(int argc, char** argv)
 	//
 	
 	// DDS
-	// Waiting for properties
-	dds::CKeyValue ddsKeyValue;
+    dds::CKeyValue ddsKeyValue;
     dds::CKeyValue::valuesMap_t values;
-    ddsKeyValue.getValues("SamplerOutputAddress", &values);
-    while (values.size() != options.numInputs)
+    // Subscribe on key update events
     {
-        ddsKeyValue.waitForUpdate(chrono::seconds(120));
+        std::mutex keyMutex;
+        std::condition_variable keyCondition;
+            
+        ddsKeyValue.subscribe([&keyCondition](const string& /*_key*/, const string& /*_value*/) {keyCondition.notify_all();});
+            
         ddsKeyValue.getValues("SamplerOutputAddress", &values);
+        while (values.size() != options.numInputs)
+        {
+            unique_lock<mutex> lock(keyMutex);
+            keyCondition.wait_until(lock, std::chrono::system_clock::now() + chrono::milliseconds(1000));
+            ddsKeyValue.getValues("SamplerOutputAddress", &values);
+        }
     }
-	//
 
 #ifdef NANOMSG
     FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();

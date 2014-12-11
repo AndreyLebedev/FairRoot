@@ -129,13 +129,22 @@ int main(int argc, char** argv)
     }
 	
 	// DDS
+    // Subscribe on key update events
     dds::CKeyValue ddsKeyValue;
     dds::CKeyValue::valuesMap_t values;
-    ddsKeyValue.getValues("MergerOutputAddress", &values);
-    while (values.empty())
     {
-        ddsKeyValue.waitForUpdate(chrono::seconds(120));
+        std::mutex keyMutex;
+        std::condition_variable keyCondition;
+        
+        ddsKeyValue.subscribe([&keyCondition](const string& /*_key*/, const string& /*_value*/) {keyCondition.notify_all();});
+        
         ddsKeyValue.getValues("MergerOutputAddress", &values);
+        while (values.empty())
+        {
+            unique_lock<mutex> lock(keyMutex);
+            keyCondition.wait_until(lock, std::chrono::system_clock::now() + chrono::milliseconds(1000));
+            ddsKeyValue.getValues("MergerOutputAddress", &values);
+        }
     }
 	//
 
