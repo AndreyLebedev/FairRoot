@@ -17,20 +17,23 @@
 
 #include "FairMQLogger.h"
 
-using std::string;
-using std::cout;
-using std::endl;
+using namespace std;
 
 FairMQLogger::FairMQLogger()
 {
+    stringstream ss;
+    ss << getpid();
+    os.open(ss.str() + ".log", ofstream::app);
 }
 
 FairMQLogger::~FairMQLogger()
 {
-    cout << os.str() << endl;
+    os << "\n";
+    os.close();
+    // cout << os.str() << endl;
 }
 
-std::ostringstream& FairMQLogger::Log(int type)
+std::ofstream& FairMQLogger::Log(int type)
 {
     string type_str;
     switch (type)

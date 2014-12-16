@@ -15,13 +15,16 @@
 #ifndef FAIRMQLOGGER_H_
 #define FAIRMQLOGGER_H_
 
+#include <fstream>
 #include <sstream>
 #include <sys/time.h>
 #include <iostream>
 #include <iomanip>
 #include <ctime>
+#include <sys/types.h>
+#include <unistd.h>
 
-using std::ostringstream;
+using namespace std;
 
 class FairMQLogger
 {
@@ -36,10 +39,10 @@ class FairMQLogger
     };
     FairMQLogger();
     virtual ~FairMQLogger();
-    ostringstream& Log(int type);
+    ofstream& Log(int type);
 
   private:
-    ostringstream os;
+    ofstream os;
 };
 
 typedef unsigned long long timestamp_t;
